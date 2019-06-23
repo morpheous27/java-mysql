@@ -1,55 +1,42 @@
 package org.nitin.filewriter;
 
+import org.nitin.util.DateUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.time.Instant;
-import java.util.Date;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 
 @Component
-public class TextWriter<T> {
+public class TextFileWriter<T> {
 
-    private RandomAccessFile stream;
-    private FileChannel inChannel;
+    @Value("${filename.prefix}")
+    private String filenamePrefix;
 
-    public void initializeChannel() throws FileNotFoundException {
-        stream = new RandomAccessFile("reports" + Date.from(Instant.now()).getDate(), "rw");
-        inChannel = stream.getChannel();
-    }
+    @Value("${path.prefix}")
+    private String pathPrefix;
 
-    public void closeChannel() throws IOException {
-        inChannel.close();
-        stream.close();
-    }
+    public String writeDataUsingFiles(List<T> data) {
+        boolean isSuccess = false;
+        String fileToWrite = pathPrefix+getFileName();
 
-    public void writeDataToFile(List<T> data) throws IOException {
-        initializeChannel();
 
-        if (!CollectionUtils.isEmpty(data)) {
-            data.stream().forEach(i -> writeData(i));
-        }
-        closeChannel();
-
-    }
-
-    private void writeData(T data) {
-        byte[] strBytes = data.toString().getBytes();
-        ByteBuffer buffer = ByteBuffer.allocate(strBytes.length);
-        buffer.put(strBytes);
-        buffer.flip();
-    }
-
-    public void writeDataUsingFiles(List<T> data) {
-        try (FileWriter fw = new FileWriter("reports" + Date.from(Instant.now()).getMinutes() + ".txt", true);
+        try (FileWriter fw = new FileWriter(fileToWrite, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
             data.stream().forEach(i -> out.println(i));
+            isSuccess = true;
         } catch (IOException e) {
             e.printStackTrace();
+            isSuccess = false;
         }
+        return fileToWrite;
+    }
+
+    private String getFileName() {
+        return filenamePrefix + DateUtil.getFromattedCurrDate() + ".txt";
     }
 }
